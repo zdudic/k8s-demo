@@ -1,0 +1,13 @@
+# Horizontal Pos Autoscaler - hpa
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ol7nagios-deployment-hpa
+spec:
+  maxReplicas: 4
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ol7nagios-deployment
+

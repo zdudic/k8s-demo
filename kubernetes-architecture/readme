@@ -1,0 +1,52 @@
+- Accessing the k8s cluster
+---------------------------
+In this demo, we use Oracle internal cluster, hence we can't access it from OCI Shell.
+We'll be using on-prem host to run kubectl command. So we need to setup this access,
+basically we'll configure ~/.kube/config file. The info how to do this is on:
+OCI console - Developer Services - Kubernetes Cluster - select Cluster - Access Cluster - Local Access
+
+On your on-prem host, you'll need to install kubectl command, see
+https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+Then quick test:
+
+ $ kubectl cluster-info
+ Kubernetes master is running at https://x.x.x.x:6443
+ CoreDNS is running at https://x.x.x.x:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+- Architecture
+---------------
+
+OCI provides OCIR (Registry for Docker images) and OKE (Kubernetes master, control panel), 
+it also provides node-pool, group of hosts with same shape. 
+OCIR and OKE are OCI managed (as service), and users can manage worker nodes. 
+
+Master:
+- API server is central component, we'll be using kubectl (from some on-prem VM) to talk to it.
+- Scheduler check node states and schedule pods on them.
+- Control manager is group of controllers for managing deployments, replicas, pods, etc.
+- etcd is key-value store, likely distributed, where K8s stores all data, it's source of truth.
+
+To list master components:
+
+$ kubectl get componentstatus
+NAME                 STATUS    MESSAGE
+controller-manager   Healthy   ok
+scheduler            Healthy   ok
+etcd-0               Healthy   {"health":"true"}
+
+Worker nodes:
+- Run Docker engine
+- Run kubelet, which is node agent, or k8s client, it talks to API server on master. 
+  It runs as traditional Linux service. 
+- kube-proxy, manages service availability, runs as docker container. 
+
+To see docker containers running on nodes, in kube-system namespace, run:
+$ kubectl get pod -o custom-columns=POD:metadata.name,NODE:spec.nodeName  -n kube-system
+
+You can also SSH to node and run 'docker ps'. 
+
+To list nodes:
+$ kubectl get nodes -o wide
+
+

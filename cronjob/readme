@@ -1,0 +1,26 @@
+Cronjobs can be run on the K8s cluster. 
+
+In this example, we backup mysql db on YOUR-FQDN, host running Bugzilla. 
+
+- package the backup script into Docker image
+  (you'll need root's private key) 
+- push docker image (bugzilla-stage-bk:demo) into OCIR
+- create cronjob yaml file
+
+- to create cronjob object run: 
+ $ kubectl create -f cronjob.yml
+
+- other commands:
+$ kubectl get cj
+$ kubectl describe cj <cj-name>
+
+- When running cronjob, k8s creates a pod and runs job inside it !!
+
+#### Note:
+On Nov 1st 2020 there was OCI incident,
+affecting network infrastructure (Japan, Germany, US East (Ashburn), US West (Phoenix)). 
+Some kubectl commands had output:
+"error: You must be logged in to the server (Unauthorized)"
+
+
+

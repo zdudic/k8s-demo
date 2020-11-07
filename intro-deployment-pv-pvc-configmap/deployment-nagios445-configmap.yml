@@ -1,0 +1,55 @@
+# https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-apiversion-definition-guide.html
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ol7nagios-deployment
+spec:
+  replicas: 2
+  selector:
+    #matchLabels:
+    #  app: ol7nagios
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - ol7nagios
+  template:
+    metadata:
+      labels:
+        app: ol7nagios
+    spec:
+      # Container
+      containers:
+      - image: phx.ocir.io/linuxandvirtualization/labops/ol7nagios:445
+        name: ol7nagios-image
+        resources:
+          requests:  # what's reserved for a pod
+            memory: "32Mi"
+            cpu: "50m"   # 50 millicpu = 0.05, 5% of CPU
+          limits:   # pod can't use more then a limit
+            memory: "64Mi"
+            cpu: "100m"   # 0.1
+        ports:
+        - containerPort: 80
+          hostPort: 8888
+        volumeMounts:
+        - mountPath: /sys/fs/cgroup
+          name: sys-fs-cgroup
+        - mountPath: /run
+          name: run
+        - mountPath: /etc/nagios/labops
+          name: hosts-cfg
+      # Volumes, https://kubernetes.io/docs/concepts/storage/volumes/
+      volumes:
+      - name: sys-fs-cgroup
+        hostPath:  
+          path: /sys/fs/cgroup  # directory on host
+          type: Directory
+      - name: run
+        emptyDir: {}
+      - name: hosts-cfg
+        configMap:
+           name: nagios-host-config
+
+
+

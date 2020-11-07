@@ -1,0 +1,101 @@
+First, we need to create ConfigMap and Headless Service. 
+Both are needed for init and regular containers. 
+ConfigMap defines MySQL master/replica configfiles.
+Headless Service defines static DNS A record (internal for k8s).
+Note: this is example from kubernetes (on google cloud), adjusted here to work on OCI. 
+
+- Create ConfiMap
+------------------
+
+ $ kubectl create -f mysql-configmap.yml
+ $ kubectl describe cm mysql
+
+Note: 
+'kubectl create cm cm-name --from-file=yml-file' may not work well. 
+It creates cm, but format diff from 'create -f' and it's not read by init-mysql. 
+
+- Create headless service
+---------------------------
+
+ $ kubectl create -f mysql-service.yml
+ $ kubectl describe service/mysql
+ $ kubectl describe service/mysql-read 
+
+- Review OCI storageClass, will be used for dynamic provisioning of OCI block volumes
+------------------------------------------------------------------------------------
+
+ $ kubectl get storageclass
+ NAME            PROVISIONER                       RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+ oci (default)   oracle.com/oci                    Delete          Immediate              false                  253d
+ oci-bv          blockvolume.csi.oraclecloud.com   Delete          WaitForFirstConsumer   false                  106d
+
+- Create StatefulSet
+----------------------
+
+ $ kubectl create -f statefulset-mysql.yml
+ $ kubectl get all,pv,pvc
+ $ kubectl describe pod/mysql-0  
+
+Pods and PVC have unique name, like pod/mysql-0 and persistentvolumeclaim/data-mysql-0.
+PV is dynamic so name is like persistentvolume/csi-796b7b71-a23a-4400-aa0c-17289636bfa9.
+
+- Scaling statefulSet
+----------------------
+
+ $ kubectl scale --replicas=3 statefulset.apps/mysql
+
+- Troubleshoot
+-------------------
+
+- Logs from container:
+
+ $ kubectl describe <pod-name>
+ $ kubectl logs <pod-name> -c <container-name>
+
+ examples:
+ $ kubectl logs pod/mysql-0 -c init-mysql
+ $ kubectl logs pod/mysql-0 -c clone-mysql
+ $ kubectl logs pod/mysql-0 -c mysql
+ $ kubectl logs pod/mysql-0 -c xtrabackup
+
+- Enter a container, and examine it. 
+---------------------------------------
+
+ Syntax: kubectl exec -it pod/<pod-name> -c <container-name> -- bash
+ $ kubectl exec -it pod/mysql-0 -c mysql -- bash
+
+Example, examining container mysql:
+
+root@mysql-0:/etc# cat /etc/debian_version
+10.6
+
+root@mysql-0:/etc# hostname
+mysql-0
+
+root@mysql-0:/# cat /etc/hosts
+# Kubernetes-managed hosts file.
+10.x.x.239    mysql-0.mysql.default.svc.cluster.local mysql-0
+
+root@mysql-0:/etc# mysql
+Server version: 5.7.32-log MySQL Community Server (GPL)
+mysql> show databases;
++------------------------+
+| Database               |
++------------------------+
+| information_schema     |
+| mysql                  |
+| performance_schema     |
+| sys                    |
+| xtrabackup_backupfiles |
++------------------------+
+5 rows in set (0.00 sec)
+
+root@mysql-0:/etc# lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0 46.6G  0 disk
+|-sda1   8:1    0  200M  0 part
+|-sda2   8:2    0    8G  0 part
+`-sda3   8:3    0 38.4G  0 part /etc/mysql/conf.d
+sdb      8:16   0   50G  0 disk /var/lib/mysql
+
+

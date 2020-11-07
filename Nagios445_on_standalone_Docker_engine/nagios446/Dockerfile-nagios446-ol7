@@ -1,0 +1,36 @@
+# Dockerfile to build nagios4.4.6
+FROM oraclelinux:7
+
+# https://hub.docker.com/_/centos/
+# Need to remove some services which might cause issues.
+RUN (cd /lib/systemd/system/sysinit.target.wants/; \
+for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+rm -f /lib/systemd/system/multi-user.target.wants/*;\
+rm -f /etc/systemd/system/*.wants/*;\
+rm -f /lib/systemd/system/local-fs.target.wants/*; \
+rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+rm -f /lib/systemd/system/basic.target.wants/*;\
+rm -f /lib/systemd/system/anaconda.target.wants/*;
+
+# Volime needed to run container with systemd
+VOLUME [ "/sys/fs/cgroup" ]
+
+# install Nagios, apache, sudo (need for nagios user)
+# here we need web proxy
+RUN export http_proxy=http://your-proxy:80 && \
+    export https_proxy=http://your-proxy:80 && \
+    rpm -Uvh https://repo.nagios.com/nagios/7/nagios-repo-7-4.el7.noarch.rpm && \
+    yum install yum-utils -y && \
+    yum-config-manager --enable ol7_optional_latest && \
+    yum -y install \
+    nagiosxi httpd sed sudo
+# Nagios configuration
+COPY *.cfg /usr/local/nagios/etc/
+COPY htpasswd.users /usr/local/nagiosxi/etc/htpasswd.users
+RUN echo "nagios  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers && \
+    systemctl enable httpd && systemctl enable nagios
+
+EXPOSE 80
+CMD ["/usr/sbin/init"]
+

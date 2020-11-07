@@ -1,0 +1,84 @@
+Introduction about deployments and other k8s objects
+----------------------------------------------------
+
+- Pod
+  This is single deployment unit in k8s. Containes of
+  one or more containers and pv/pvc (persistent data).
+  Pod can be create as stand alone, but you can't scale them up/down. 
+
+- ReplicaSet
+  This is k8s object that creates pods and manages their scaling. 
+  If a pod is deleted, a ReplicaSet will replace it with new one. 
+  ReplicaSet doesn't have native updating feature.
+
+- Deployment
+  This is top object, creating ReplicaSet. 
+  It's design because of its native rolling updates feature. 
+  It defines a pod template, which  is used by ReplicaSet to create Pods. 
+  A pod template has info about Docker image, resources, ports, volume mounts, etc. 
+
+- Volume
+  This can be defined as pv + pvc, or config map. 
+  It keeps data persistent. It's outside of deployment,
+  if deployment is deleted, data stays untouched. 
+
+- ConfigMap
+  This is key:value store, a value can be a configuration file, 
+  like one for Nagios. 
+
+- PersistentVolume (PV)
+  This is like a disk attached to a system. 
+  So first you need to create real storage, like NFS share. 
+
+- PersistentVolumeClaim (PVC)
+  This is like mount command, used to mount a disk (PV). 
+  It's 1:1 connection type, so another PVC can't use already bound PV. 
+  PVC uses access mode and storage size to find and bound to PV. 
+
+- Service
+  Each pod has its own internal IP, but app (Nagios) has to be accessed 
+  from outside of k8s cluster. Service allows this, in this case our
+  service type is LoadBalancer. We'll use internal OCI LB, so its IP
+  is on same subnet as nodes, like common.sub. 
+  Service is also outside of deployment, and survives deployment removal. 
+
+- HorizontalPodAutoscaler
+  It's object to define min and max number of replicas,
+  so you don't need to scale up/down pods manually. 
+
+- Note:
+  Pods we use here are stateless. They have rendom string as part of name. 
+  They can come and go (like cattle in pet-cattle analogy).
+  All pods use same PVC to bind to one PV and access NFS share with Nagios cfg file. 
+
+- Appendix, with some examples:
+-------------------------------
+
+1) ConfigMaps
+
+- Creating ConfigMap
+ $ kubectl create configmap nagios-host-config --from-file=hosts.cfg
+ $ kubectl get cm
+ $ kubectl describe cm nagios-host-config
+
+- Edit configMap, this open configmap in vi editor. 
+ $ kubectl edit cm  nagios-host-config
+
+2) Service as LB
+
+- manually expose application
+ $ kubectl expose deployment.apps/ol7nagios-deployment --type=LoadBalancer --selector=app=ol7nagios
+ 
+This won't assign public IP for LB, because public IP is not allowed on OCI internal subnet. 
+We'll create 'internal' LB using yml file. 
+
+3) Scaling up/down application
+ $ kubectl scale deployment.apps/ol7nagios-deployment --replicas=3
+
+4) Troubleshoot, it's good to use describe option. 
+
+ $ kubectl describe <k8s-object-name>
+ example:
+ $ kubectl describe service/ol7nagios-deployment
+
+

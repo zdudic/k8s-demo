@@ -1,0 +1,67 @@
+With rolling-update, there is only one Deployment, owning two ReplicaSets. 
+Pods are replaced one by one, step by step. 
+
+Rolling of new app version, can be starting by changing pod template, 
+likely using new image, in this case Nagios446 image. 
+
+There is no change of the service/LB, and deployment label. 
+It's useful using option '--record' to record rollout history and revisions. 
+
+Note: this is example of deployment with pvc, so have pv/pvc created in advance !!
+------------------------------------------------------------------------------
+
+- create service for this deployment
+
+ $ kubectl create -f service-internal-lb.yml
+
+- create deployment, user --record for recording rollouts history and revisions
+
+ $ kubectl create -f deployment-nagios-pvc.yml  --record
+
+- to see rollout/deployment status
+
+ $ kubectl rollout status deployment.apps/ol7nagios-deployment
+
+- to see rollout histroy and revisions
+
+ $ kubectl rollout history  deployment.apps/ol7nagios-deployment
+
+- Rollout of new deployment/app can be also done with apply or replace( no --record),
+  using new deployment yml file.  Ex:
+
+  $ kubectl apply -f deployment-nagios446-pvc.yml --record
+   or
+  $ kubectl replace  -f deployment-nagios446-pvc.yml
+
+- Another way for rollout, maybe recommended, is setting new image (nagios446) 
+  syntax: kubectl set image <deployment-name> <image-name>=image:tag --record
+
+  example:
+  $ kubectl set image deployment.apps/ol7nagios-deployment ol7nagios-image=phx.ocir.io/linuxandvirtualization/labops/ol7nagios:446 --record
+ 
+- Now your pods are replaced one by one. To see rollout history: 
+
+ $ kubectl rollout history  deployment.apps/ol7nagios-deployment
+ REVISION  CHANGE-CAUSE
+ 1         kubectl create --filename=deployment-nagios-pvc.yml --record=true
+ 2         kubectl set image deployment.apps/ol7nagios-deployment ol7nagios-image=phx.ocir.io/linuxandvirtualization/labops/ol7nagios:446 --record=true
+
+
+- In casse of problem with Nagios 446, rollout can be undone. 
+  You can set image back to nagios445, but there is 'rollout undo' option. 
+
+ $ kubectl rollout undo  deployment.apps/ol7nagios-deployment
+ deployment.apps/ol7nagios-deployment rolled back
+
+ $ kubectl rollout history   deployment.apps/ol7nagios-deployment
+ deployment.apps/ol7nagios-deployment
+ REVISION  CHANGE-CAUSE
+ 2         kubectl set image deployment.apps/ol7nagios-deployment ol7nagios-image=phx.ocir.io/linuxandvirtualization/labops/ol7nagios:446 --record=true
+ 3         kubectl create --filename=deployment-nagios-pvc.yml --record=true
+
+- Deployment has 2 ReplicaSets, one is empty, another run pods. 
+  It's good not to delete empty one, so you keep rollout history and revisions.
+
+
+
+

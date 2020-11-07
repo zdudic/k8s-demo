@@ -1,0 +1,3 @@
+This dir is to build nagios 4.4.6 (or nagios 4.4.6 in XI) image.
+It will be used for k8s rollout from nagios 4.4.5 to 4.4.6
+

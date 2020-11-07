@@ -1,0 +1,20 @@
+Single Docker engine:
+
+- you use 'docker' command to talk to Docker engine.
+- Docker engine pull images from repo, like OCIR
+- Image is run inside container
+- Container can have persistent volume 
+  ex, local directory/file or NFS share
+- Container's service can be accesses via host/container port mapping
+
+K8s
+
+- you use kubectl command to talk to master API server
+- kubelet on worker nodes talk to API server
+- then kubelet manages Docker engine on worker nodes
+- from here is almost same as on single Docker engine
+- Docker engine pull images from repo, like OCIR
+- Image is run inside container, and container inside Pod
+  so Pod is single unit of deployment in k8s
+- Pod can have one or more container, and persistent volumes
+- Final component is service, ex. LoadBalancer for accessing app from outside k8s cluster

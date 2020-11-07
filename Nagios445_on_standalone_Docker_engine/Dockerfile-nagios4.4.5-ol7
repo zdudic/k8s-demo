@@ -1,0 +1,39 @@
+FROM oraclelinux:7
+
+# https://hub.docker.com/_/centos/
+# Need to remove some services which might cause issues.
+RUN (cd /lib/systemd/system/sysinit.target.wants/; \
+for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+rm -f /lib/systemd/system/multi-user.target.wants/*;\
+rm -f /etc/systemd/system/*.wants/*;\
+rm -f /lib/systemd/system/local-fs.target.wants/*; \
+rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+rm -f /lib/systemd/system/basic.target.wants/*;\
+rm -f /lib/systemd/system/anaconda.target.wants/*;
+
+# Volime needed to run container with systemd
+VOLUME [ "/sys/fs/cgroup" ]
+
+# install Nagios, apache, sudo (need for nagios user)
+# here we need web proxy
+RUN export http_proxy=http://your-proxy:80 && \
+    export https_proxy=http://your-proxy:80 && \
+    yum -y install \
+    http://rpmfind.net/linux/epel/7/x86_64/Packages/n/nagios-common-4.4.5-7.el7.x86_64.rpm \
+    http://rpmfind.net/linux/epel/7/x86_64/Packages/n/nagios-4.4.5-7.el7.x86_64.rpm \
+    http://rpmfind.net/linux/epel/7/x86_64/Packages/n/nagios-plugins-2.3.3-2.el7.x86_64.rpm \
+    http://rpmfind.net/linux/epel/7/x86_64/Packages/n/nagios-plugins-ping-2.3.3-2.el7.x86_64.rpm \
+    httpd sed sudo
+# Nagios configuration
+RUN cp /etc/nagios/nagios.cfg /etc/nagios/nagios.cfg~ && \
+    cat /etc/nagios/nagios.cfg~ | \
+    sed 's/cfg_file=\/etc\/nagios\/objects\/localhost.cfg/#cfg_file=\/etc\/nagios\/objects\/localhost.cfg/g' \
+    > /etc/nagios/nagios.cfg && \
+    echo "cfg_file=/etc/nagios/labops/hosts.cfg" >> /etc/nagios/nagios.cfg && \
+    echo "nagios  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers
+RUN systemctl enable httpd && systemctl enable nagios
+
+EXPOSE 80
+CMD ["/usr/sbin/init"]
+

@@ -1,0 +1,36 @@
+Traditionally a container runs one process, but with more apps packaged inside container, 
+there is need to run more processes (except you design an app to have more containers working together). 
+The systemd (service manager)  can now run in container, hence it's possible to have 
+more processing running inside container. 
+The systemd it is not active by default, so this Docker file has info how to activate it. 
+
+In this example, we'll build Nagios 4.4.5 (on ol7) image, and run it on the standalone 
+host (host runs Docker engine).
+
+To build an image, use command:
+
+$ docker build -t <image>:<tag> -f <Docker-file> .
+
+ex: 
+docker build -t nagios:445 -f Dockerfile-nagios4.4.5-ol7 .
+
+To run Nagios image on standalone Docker engine, run:
+
+$ docker run -ti -d --rm \
+-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+-v /tmp/$(mktemp -d):/run \
+-v /etc/nagios/labops/hosts.cfg:/etc/nagios/labops/hosts.cfg \
+-p 80:80 nagios:445
+
+Note: 
+we have three volumes, two for multiple processes (/sys/fs/cgroup and /run) and the third volume 
+is with persistent Nagios config file (list of host to check).
+
+Then, we access Nagios via http://<host>/nagios
+Default login is nagiosadmin/nagiosadmin
+
+The dir nagios446 is for building Nagios4.4.6 image, we'll use it for k8s rollout updates. 
+
+Nagios images will be pushed to OCIR Phoenix, and we'll pulling them from there in k8s demo. 
+
+

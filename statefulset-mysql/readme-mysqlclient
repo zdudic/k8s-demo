@@ -1,0 +1,103 @@
+In this demo, application is independent pod, running mysql client: 
+
+- Start new pod, named mysqlclient, interactivly.
+
+ $ kubectl run mysqlclient -it --rm --image=phx.ocir.io/linuxandvirtualization/labops/mysql:5.7  -- bash
+
+- Install some utils, like ping/host, we need web proxy ...
+ 
+root@mysqlclient:/# export http_proxy=http://your-proxy:80
+root@mysqlclient:/# export https_proxy=http://your-proxy:80
+root@mysqlclient:/#   apt-get update
+root@mysqlclient:/#   apt-get install iputils-ping 
+root@mysqlclient:/#   apt-get install host
+
+- Verify DNS name pods:
+
+root@mysqlclient:/# host mysql-0.mysql
+mysql-0.mysql.default.svc.cluster.local has address 10.x.x.239
+
+root@mysqlclient:/# ping mysql-0.mysql
+PING mysql-0.mysql.default.svc.cluster.local (10.x.x.239) 56(84) bytes of data.
+64 bytes from mysql-0.mysql.default.svc.cluster.local (10.x.x.239): icmp_seq=1 ttl=62 time=1.05 ms
+64 bytes from mysql-0.mysql.default.svc.cluster.local (10.x.x.239): icmp_seq=2 ttl=62 time=1.13 ms
+
+- Connect to MySQL master
+
+
+root@mysqlclient:/etc# mysql -h mysql-0.mysql
+Server version: 5.7.32-log MySQL Community Server (GPL)
+
+mysql> show databases;
++------------------------+
+| Database               |
++------------------------+
+| information_schema     |
+| mysql                  |
+| performance_schema     |
+| sys                    |
+| xtrabackup_backupfiles |
++------------------------+
+5 rows in set (0.00 sec)
+
+- Create new database
+
+mysql>  CREATE DATABASE labops;
+Query OK, 1 row affected (0.01 sec)
+
+- Switch to it, and create new table
+
+mysql> use labops;
+Database changed
+
+mysql> CREATE TABLE demo (demo_id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT, topic VARCHAR(100));
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> show tables;
++------------------+
+| Tables_in_labops |
++------------------+
+| demo             |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> describe demo;
++---------+------------------+------+-----+---------+----------------+
+| Field   | Type             | Null | Key | Default | Extra          |
++---------+------------------+------+-----+---------+----------------+
+| demo_id | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| topic   | varchar(100)     | YES  |     | NULL    |                |
++---------+------------------+------+-----+---------+----------------+
+2 rows in set (0.01 sec)
+
+- Insert some data into table
+
+mysql> insert into demo set topic='k8s';
+Query OK, 1 row affected (0.01 sec)
+
+- Perform search
+
+mysql> select * from demo;
++---------+-------+
+| demo_id | topic |
++---------+-------+
+|       1 | k8s   |
++---------+-------+
+1 row in set (0.00 sec)
+
+- Disconnect from MySQL master. 
+
+- Connect to MySQL replica and verify that it has data replicated from master.
+
+root@mysqlclient:/# mysql -h mysql-1.mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+
+mysql> select * from labops.demo;
++---------+-------+
+| demo_id | topic |
++---------+-------+
+|       1 | k8s   |
++---------+-------+
+1 row in set (0.00 sec)
+
+

@@ -1,0 +1,15 @@
+# persistent volume, nfs share on ZFS appliance
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nagios-pv
+  labels:
+    type: nfs
+spec:
+  capacity:
+    storage: 10M
+  accessModes:
+  - ReadOnlyMany #the volume can be mounted read-only by many nodes
+  nfs: 
+    path: /export/k8s-demo  # share for this demo
+    server: x.x.x.x # IP of my ZFS appliance

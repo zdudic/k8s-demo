@@ -1,0 +1,16 @@
+# backup mysql on YOUR-FQDN, your host.
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: bugzilla-backup
+spec:
+  schedule: "*/2 * * * *"  
+  startingDeadlineSeconds: 120  # max seconds CronJob takes to start if it misses its scheduled 
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: bugzilla-backup
+            image: phx.ocir.io/linuxandvirtualization/labops/bugzilla-stage-bk:demo
+          restartPolicy: OnFailure

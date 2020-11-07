@@ -1,0 +1,37 @@
+Blue-green deployment is switch at once from one to newer version of an app. 
+Here, we switch at once from Nagios4.4.5 to Nagios4.4.6.
+
+Note: this is example using pvc, so have them created first !!!
+------------------------------------------------------------
+
+- Create Nagios 445 deployment first, 
+
+ $ kubectl create -f deployment-nagios445-pvc.yml 
+
+- Create service with selector for nagios445 (app: ol7nagios445),
+  this selector will be changed later to switch between deployments/nagios
+
+ $ kubectl create -f service-internal-lb.yml
+
+- Create new deployment, nagios446
+
+ $ kubectl create -f deployment-nagios446-pvc.yml 
+
+- At this moment, there are two deployments running in parallel, 
+  see them and the service, and review their 'selector'
+
+ $ kubectl get deployment,service -o wide
+ NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS        IMAGES          SELECTOR
+ deployment.apps/ol7nagios445-deployment   2/2     2            2           19m    ol7nagios-image   ol7nagios:445   app in (ol7nagios445)
+ deployment.apps/ol7nagios446-deployment   2/2     2            2           2m6s   ol7nagios-image   ol7nagios:446   app in (ol7nagios446)
+
+ NAME                           TYPE           CLUSTER-IP     EXTERNAL-IP       PORT(S)        AGE     SELECTOR
+ service/ol7nagios-service-lb   LoadBalancer   10.x.x.x       100.x.x.x   80:31378/TCP   7m51s   app=ol7nagios445
+
+ Nagios is accessed via http://100.x.x.x/nagios
+
+- Use service selector to switch between deployments at once. 
+
+ $ kubectl set selector service/ol7nagios-service-lb app=ol7nagios446
+
+- If there is any problem with new app (ex. nagios446), undo the change by setting service selector back to previous one. 

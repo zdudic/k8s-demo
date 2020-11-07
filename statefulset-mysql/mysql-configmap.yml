@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+data:
+  master.cnf: |
+    # Config for Master
+    # Binary logging must be enabled on master, 
+    # since binary log is basis for replicating changes from master to replicas. 
+    # Without log-bin, replication is not possible. 
+    [mysqld]
+    log-bin
+  slave.cnf: |
+    # Config for Replica
+    # There is one Primary server in read-write mode. 
+    # All other members/replicas are read-only. 
+    [mysqld]
+    super-read-only
+
