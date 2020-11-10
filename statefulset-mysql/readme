@@ -98,4 +98,30 @@ sda      8:0    0 46.6G  0 disk
 `-sda3   8:3    0 38.4G  0 part /etc/mysql/conf.d
 sdb      8:16   0   50G  0 disk /var/lib/mysql
 
+- Updating StatefulSet
+--------------------------
+
+- Edit statefulset, this command opens the editor (vi), 
+  change image, like from 5.7.31 to 5.7 (tag for 5.7.32),
+  all these images are in OCIR. 
+
+ $ kubectl edit statefulset.apps/mysql
+   statefulset.apps/mysql edited
+
+- Follow rollout, pod with highest number will be updated first. 
+
+ $ kubectl get pods
+  NAME          READY   STATUS        RESTARTS   AGE
+  pod/mysql-0   2/2     Running       0          6m56s
+  pod/mysql-1   2/2     Terminating   0          5m33s
+
+- Then all other pods will be updated. 
+
+ $ kubectl get pods
+  NAME      READY   STATUS        RESTARTS   AGE
+  mysql-0   1/2     Terminating   0          7m44s
+  mysql-1   2/2     Running       0          35s
+
+- MySQL version now is 5.7.32, verify via mysqlclient pod or entering mysql container. 
+
 

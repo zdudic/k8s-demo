@@ -15,7 +15,7 @@ spec:
     spec:
       initContainers:
       - name: init-mysql
-        image: phx.ocir.io/linuxandvirtualization/labops/mysql:5.7
+        image: phx.ocir.io/linuxandvirtualization/labops/mysql:5.7.31
         command:
         - bash
         - "-c"
@@ -66,7 +66,7 @@ spec:
           mountPath: /etc/mysql/conf.d
       containers:
       - name: mysql  # primary container
-        image: phx.ocir.io/linuxandvirtualization/labops/mysql:5.7
+        image: phx.ocir.io/linuxandvirtualization/labops/mysql:5.7.31
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "1"   # true
